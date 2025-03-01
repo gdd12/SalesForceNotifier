@@ -1,0 +1,10 @@
+<!--
+  If you do not plan to query your personal case list:
+
+    Change <Personal>true</Personal>
+    To     <Personal>false</Personal>
+ -->
+<Queues>
+  <Team>true</Team>
+  <Personal>false</Personal>
+</Queues>

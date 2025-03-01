@@ -1,0 +1,58 @@
+<!-- 
+
+CONTENT IN THE FILE CAN BE CHANGED ON THE FLY WITHOUT A 
+RESTART BE CAUTIOUS WHEN MAKING CHANGES DURING PROCESSING
+
+Note: You cannot enter HTTP request info from a 'Report' is must be from a 'Case' list
+
+Steps to obtain configuration:
+  1. Open the SalesForce case queue
+  2. Open the browser page's Network tab
+  3. Refresh the queue to capture the network request
+  4. Open the request details, copy the following:
+
+    The full URL from the POST request
+    'Message' value from the Request
+    'aura.context' value from the Request
+    'aura.pageURI' value from the Request
+
+-->
+<Config>
+  <SalesForceData>
+    <url>
+
+    </url>
+    <message>
+
+    </message>
+    <context>
+
+    </context>
+    <pageUri>
+
+    </pageUri>
+  </SalesForceData>
+  <PersonalQueue>
+    <url>
+
+    </url>
+    <message>
+
+    </message>
+    <context>
+
+    </context>
+    <pageUri>
+
+    </pageUri>
+  </PersonalQueue>
+  <!-- Set each to 'true' for the product you support. Default is false -->
+  <Products>
+    <B2B>false</B2B>
+    <Activator>false</Activator>
+    <SecureTransport>false</SecureTransport>
+    <Api>false</Api>
+    <Cft>false</Cft>
+    <Gateway>false</Gateway>
+  </Products>
+</Config>

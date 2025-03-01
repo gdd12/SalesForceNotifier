@@ -1,0 +1,4 @@
+node_modules
+/config/credentials.txt
+package-lock.json
+/test
