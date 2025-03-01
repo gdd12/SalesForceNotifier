@@ -6,5 +6,5 @@
  -->
 <Queues>
   <Team>true</Team>
-  <Personal>false</Personal>
+  <Personal>true</Personal>
 </Queues>
