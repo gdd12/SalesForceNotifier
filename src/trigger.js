@@ -78,7 +78,7 @@ const queuesToCheck = async () => {
 
 const processPhxHttpResponse = async (queueData) => {
   try {
-    const caseRecords = queueData?.data?.context?.globalValueProviders[1]?.values?.records;
+    const caseRecords = queueData?.data?.context?.globalValueProviders[2]?.values?.records;
     if (!caseRecords) {
       logger.error(`Case records are missing or malformed in response data.\n > Possible Copy/Paste issues in ${configurationFilePath} \n > Edit the file and restart.`);
       process.exit(2);
