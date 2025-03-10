@@ -78,7 +78,9 @@ const queuesToCheck = async () => {
 
 const processPhxHttpResponse = async (queueData) => {
   try {
-    const caseRecords = queueData?.data?.context?.globalValueProviders[2]?.values?.records;
+    let baseCaseRecord = queueData?.data?.context;
+    let caseRecords = baseCaseRecord.globalValueProviders[1]?.values?.records || baseCaseRecord.globalValueProviders[2]?.values?.records;
+
     if (!caseRecords) {
       logger.error(`Case records are missing or malformed in response data.\n > Possible Copy/Paste issues in ${configurationFilePath} \n > Edit the file and restart.`);
       process.exit(2);
@@ -107,10 +109,12 @@ const processPhxHttpResponse = async (queueData) => {
 const processMyHttpResponse = async (queueData) => {
   try {
     const CaseCommitments = []
-    const myCases = queueData?.data?.context?.globalValueProviders[1]?.values?.records;
+    let baseCaseRecord = queueData?.data?.context;
+    let myCases = baseCaseRecord.globalValueProviders[1]?.values?.records || baseCaseRecord.globalValueProviders[2]?.values?.records;
+
     if (!myCases) {
-      logger.error("My cases are missing or malformed in response data.");
-      return;
+      logger.error(`Case records are missing or malformed in response data.\n > Possible Copy/Paste issues in ${configurationFilePath} \n > Edit the file and restart.`);
+      process.exit(2);
     }
 
     Object.values(myCases).forEach((record) => {
