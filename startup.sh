@@ -5,6 +5,8 @@ trigger_file=$src_path/src/trigger.js
 credentials_file_path=$src_path/config/credentials.txt
 debug_config_file="$src_path/config/logging.conf"
 polling_interval_minutes=5
+template_config_file="$src_path/templates/configuration.xml"
+config_file="$src_path/config/configuration.xml"
 
 debug_config() {
   if [ -f "$debug_config_file" ]; then
@@ -41,8 +43,18 @@ startup() {
     elif [ $exit_code -eq 2 ]; then
       echo "An unexpected error occurred. Exiting."
       break
+    elif [ $exit_code -eq 3 ]; then
+      echo "Configuration file not found. Moving $template_config_file to $config_file."
+      cp $template_config_file $config_file
+      echo "Enter configuration and restart"
+      break
     else
-      sleep $((polling_interval_minutes * 60))
+      sleep $(( (polling_interval_minutes - 1) * 60 ))
+      echo
+      for i in {60..1}; do
+        echo -ne "Next fetch in $i seconds...\r"
+        sleep 1
+      done
       clear
       continue
     fi

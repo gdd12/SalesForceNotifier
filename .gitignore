@@ -3,3 +3,4 @@ node_modules
 package-lock.json
 /test
 /config/caseNumbers
+/config/configuration.xml
