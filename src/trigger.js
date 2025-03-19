@@ -1,6 +1,7 @@
 const { logger, DEBUG, ERROR } = require("./logger")
 const { httpRequest } = require("./http")
 const { readConfigurationFile, readCredentials, readQueueStatus } = require("./readFiles")
+const { validateConfiguration, validateCredentials, validateQueues, validateProducts } = require('./validation')
 
 const srcPath = process.env.NODE_PATH
 const configurationFilePath = `${srcPath}/config/configuration.xml`;
@@ -28,6 +29,20 @@ const statusCodeMapping = {
   404: "Not Found",
   500: "Server Error"
 }
+const RunValidations = async () => {
+  const func = "RunValidations"
+  try {
+    await validateConfiguration(configurationFilePath)
+    await validateCredentials(credentialFilePath)
+    await validateProducts(configurationFilePath)
+    await validateQueues(queueStatusFile)
+    // Once validations are complete, run the Trigger script
+    TriggerStartup()
+  } catch (error) {
+    ERROR(func, `Error during RunValidations: ${error.message}`);
+    process.exit(2)
+  }
+};
 
 const TriggerStartup = async () => {
   let phxConfiguration, myConfiguration;
@@ -168,4 +183,4 @@ const printPersonalQueue = ({cases, queue}) => {
   }
 };
 
-TriggerStartup();
+RunValidations();
