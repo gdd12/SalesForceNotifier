@@ -3,7 +3,6 @@
 src_path=$(dirname "$(realpath "$0")")
 trigger_file=$src_path/src/trigger.js
 credentials_file_path=$src_path/config/credentials.txt
-unauthorized_python_script=$src_path/NotificationService/UnauthorizedNotification.py
 debug_config_file="$src_path/config/logging.conf"
 polling_interval_minutes=5
 
