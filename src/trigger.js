@@ -1,4 +1,4 @@
-const logger = require("./logger")
+const { logger, DEBUG, ERROR } = require("./logger")
 const { httpRequest } = require("./http")
 const { readConfigurationFile, readCredentials, readQueueStatus } = require("./readFiles")
 

@@ -3,7 +3,21 @@
 src_path=$(dirname "$(realpath "$0")")
 trigger_file=$src_path/src/trigger.js
 credentials_file_path=$src_path/config/credentials.txt
+unauthorized_python_script=$src_path/NotificationService/UnauthorizedNotification.py
+debug_config_file="$src_path/config/logging.conf"
 polling_interval_minutes=5
+
+debug_config() {
+  if [ -f "$debug_config_file" ]; then
+    LOG_LEVEL=$(grep -E "^DEBUG=" "$debug_config_file" | cut -d'=' -f2)
+    if [ -z "$LOG_LEVEL" ]; then
+      DEBUG="false"
+    fi
+  else
+    echo "logging.conf file not found. Defaulting to 'false'."
+    DEBUG="false"
+  fi
+}
 
 startup() {
   clear
@@ -16,6 +30,8 @@ startup() {
     echo "Fetching batch @ $current_time"
     echo
 
+    debug_config
+    export DEBUG=$LOG_LEVEL
     NODE_PATH=$src_path node $trigger_file
     exit_code=$?
 
