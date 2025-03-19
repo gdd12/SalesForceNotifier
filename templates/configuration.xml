@@ -10,7 +10,6 @@ Steps to obtain configuration:
   4. Open the request details, copy the following:
 
     The full URL from the POST request
-    'Cookie' value from the Headers
     'Message' value from the Request
     'aura.context' value from the Request
     'aura.pageURI' value from the Request
