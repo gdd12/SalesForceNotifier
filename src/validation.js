@@ -132,7 +132,6 @@ const validateQueues = async (filePath) => {
       throw new Error('Error: Personal value is neither true nor false.');
     }
     DEBUG('Validation', ` >> Successful check`)
-    DEBUG(`Validation`, `************************* Validation Checks Completed *************************`)
   } catch (error) {
     ERROR(func, `Unrecoverable error while performing validation checks. ${error.message}`)
     process.exit(2)
