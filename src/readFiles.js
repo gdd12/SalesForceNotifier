@@ -1,8 +1,9 @@
 const fs = require('fs').promises;
 const xml2js = require('xml2js');
-const logger = require("./logger")
+const { logger, DEBUG, ERROR } = require("./logger")
 
 const readCredentials = async (filePath) => {
+  const func = "readCredentials"
   try {
     const data = await fs.readFile(filePath, 'utf8');
     const [sid, token] = data.split('\n').map(line => line.trim());
@@ -19,24 +20,18 @@ const readCredentials = async (filePath) => {
 };
 
 const readConfigurationFile = async ({type, filePath}) => {
+  const func = "readConfigurationFile"
   try {
+    DEBUG(func, `Loading config file data`)
     const data = await fs.readFile(filePath, 'utf8');
+    DEBUG(func, `Sanitizing ${filePath}`)
     const SFsanitizedConfig = data.replace(/&(?!amp;|lt;|gt;|quot;|#\d+;)/g, '&amp;');
     const result = await xml2js.parseStringPromise(SFsanitizedConfig);
+    DEBUG(func, `Determining queue to check`)
     if (type === "request_info") {
+      DEBUG(func, `Config for the queue ${type} is being read`)
       const config = result.Config.SalesForceData[0];
-      let configurationLocation = 'Config.SalesForceData'
-      let errCount = 0
-
-      if (config.url[0].trim() == 0) logger.error(`ERROR: ${configurationLocation}.url missing in ${filePath}`), errCount +=1
-      if (config.message[0].trim() == 0) logger.error(`ERROR: ${configurationLocation}.message missing in ${filePath}`), errCount +=1
-      if (config.context[0].trim() == 0) logger.error(`ERROR: ${configurationLocation}.context missing in ${filePath}`), errCount +=1
-      if (config.pageUri[0].trim() == 0) logger.error(`ERROR: ${configurationLocation}.pageUri missing in ${filePath}`), errCount +=1
-
-      if (errCount > 0) {
-        return process.exit(2)
-      }
-
+      DEBUG(func, `Configuration file is valid, returning config`)
       return {
         url: config.url[0],
         message: config.message[0],
@@ -45,49 +40,32 @@ const readConfigurationFile = async ({type, filePath}) => {
       };
     }
     if (type === "personal_queue") {
+      DEBUG(func, `Config for the queue ${type} is being read`)
       const config = result.Config.PersonalQueue[0];
-      let configurationLocation = 'Config.PersonalQueue'
-      let errCount = 0;
-
-      if (config.url[0].trim() == 0) logger.error(`ERROR: ${configurationLocation}.url missing in ${filePath}`), errCount +=1
-      if (config.message[0].trim() == 0) logger.error(`ERROR: ${configurationLocation}.message missing in ${filePath}`), errCount +=1
-      if (config.context[0].trim() == 0) logger.error(`ERROR: ${configurationLocation}.context missing in ${filePath}`), errCount +=1
-      if (config.pageUri[0].trim() == 0) logger.error(`ERROR: ${configurationLocation}.pageUri missing in ${filePath}`), errCount +=1
-
-      switch (errCount) {
-        // If no errCount, all values exist and we can process to HTTP processing
-        case 0:
-          return {
-            url: config.url[0],
-            message: config.message[0],
-            context: config.context[0],
-            pageUri: config.pageUri[0]
-          };
-        // If all are missing, user has not defined any. This is OK, return nothing.
-        case 4:
-          return
-        // If some configs are missing, throw error.
-        default:
-          return process.exit(2)
+      return {
+        url: config.url[0],
+        message: config.message[0],
+        context: config.context[0],
+        pageUri: config.pageUri[0]
       }
     }
     if (type === "products_list") {
-      if (Object.values(result.Config.Products[0]).every(val => Array.isArray(val) && val.length === 1 && val[0] === '')) {
-        logger.error(`No products configured in ${filePath}`)
-        process.exit(2)
-      }
+      DEBUG(func, `Config for the ${type} is being read`)
       return result.Config.Products[0];
     }
   } catch (error) {
-    logger.error('Error reading or parsing the configuration file:', error);
+    ERROR(func, `Unable to read the configuration file. Fatal and unrecoverable. ${error.message}`);
     throw error;
   }
 };
 
 const readQueueStatus = async (filePath) => {
+  const func = "readQueueStatus"
   try {
+    DEBUG(func, `Reading ${filePath} for queues`)
     const data = await fs.readFile(filePath, 'utf8');
     const result = await xml2js.parseStringPromise(data);
+    DEBUG(func, `Read successful`)
     return result
   } catch (error) {
     logger.error(`ERROR: Could not read queues.xml file at ${filePath}`)
@@ -95,4 +73,25 @@ const readQueueStatus = async (filePath) => {
   }
 }
 
-module.exports = { readConfigurationFile, readCredentials, readQueueStatus };
+const writeCaseListFile = async (caseNumbers, caseNumberFile) => {
+  const func = "writeCaseListFile"
+  try {
+    DEBUG(func, `Loading data from ${caseNumberFile}`)
+    const loadedData = await fs.readFile(caseNumberFile, 'utf8');
+    const existingCaseNumbers = new Set(loadedData.split('\n').filter(line => line.trim()));
+    const newCaseNumbers = caseNumbers.filter(caseNumber => !existingCaseNumbers.has(caseNumber));
+
+    if (newCaseNumbers.length > 0) {
+      await fs.appendFile(caseNumberFile, newCaseNumbers.join('\n') + '\n', 'utf8');
+    }
+    return
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      await fs.writeFile(caseNumberFile, '' , 'utf8')
+    } else {
+      console.error('Error:', error);
+    }
+  }
+}
+
+module.exports = { readConfigurationFile, readCredentials, readQueueStatus, writeCaseListFile};
