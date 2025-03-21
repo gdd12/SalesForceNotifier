@@ -57,7 +57,7 @@ startup() {
       break
     else
       print_case_list
-      sleep $(( (polling_interval_minutes - 1) * 30 ))
+      sleep $(((polling_interval_minutes * 60 ) - 30))
       echo
       for i in {30..1}; do
         echo -ne "Next fetch in $i seconds...\r"
