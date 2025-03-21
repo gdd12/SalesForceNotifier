@@ -21,7 +21,8 @@ const productCaseCount = {
   SecureTransport: 0,
   Cft: 0,
   Api: 0,
-  Gateway: 0
+  Gateway: 0,
+  Sentinel: 0
 };
 
 const statusCodeMapping = {

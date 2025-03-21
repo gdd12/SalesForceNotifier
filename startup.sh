@@ -7,6 +7,7 @@ debug_config_file="$src_path/config/logging.conf"
 polling_interval_minutes=5
 template_config_file="$src_path/templates/configuration.xml"
 config_file="$src_path/config/configuration.xml"
+case_list="$src_path/config/caseNumbers"
 
 debug_config() {
   if [ -f "$debug_config_file" ]; then
@@ -29,6 +30,12 @@ startup() {
   while true; do
     current_time=$(date +"%a %b %d %H:%M:%S")
     echo "Fetching batch @ $current_time"
+    if [ $(date "+%H") -ge 17 ]; then
+      echo
+      echo "  Past 5PM, exiting and removing the case list."
+      rm $case_list
+      return
+    fi
     echo
 
     debug_config
@@ -49,9 +56,10 @@ startup() {
       echo "Enter configuration and restart"
       break
     else
-      sleep $(( (polling_interval_minutes - 1) * 60 ))
+      print_case_list
+      sleep $(( (polling_interval_minutes - 1) * 30 ))
       echo
-      for i in {60..1}; do
+      for i in {30..1}; do
         echo -ne "Next fetch in $i seconds...\r"
         sleep 1
       done
@@ -59,6 +67,20 @@ startup() {
       continue
     fi
   done
+}
+
+print_case_list() {
+  echo
+  case_list_length=$(sed -n '1p' "$case_list")
+
+  if [ -n "$case_list_length" ]; then
+    echo "Cases created today:"
+    echo
+    cat "$case_list" | while read -r line
+    do
+      echo " > $line"
+    done
+  fi
 }
 
 rewrite_credentials() {

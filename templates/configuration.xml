@@ -36,5 +36,6 @@ Steps to obtain configuration:
     <Api></Api>
     <Cft></Cft>
     <Gateway></Gateway>
+    <Sentinel></Sentinel>
   </Products>
 </Config>
