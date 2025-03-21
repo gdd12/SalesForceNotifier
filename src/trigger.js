@@ -34,107 +34,106 @@ const statusCodeMapping = {
 }
 
 const RunValidations = async () => {
-  const func = "RunValidations"
+  const func = "RunValidations";
   try {
-    DEBUG(func, `Starting configuration validation process`);
-    await validateConfiguration(configurationFilePath)
-    await validateCredentials(credentialFilePath)
-    await validateProducts(configurationFilePath)
-    await validateQueues(queueStatusFile)
-    // Once validations are complete, run the Trigger script
-    DEBUG(`Validation`, `************************* Validation Checks Completed *************************`)
-    DEBUG(func, `Validation complete, triggering startup sequence.`);
-    TriggerStartup()
+    DEBUG(func, `Starting configuration and credentials validation process`);
+    await validateConfiguration(configurationFilePath);
+    await validateCredentials(credentialFilePath);
+    await validateProducts(configurationFilePath);
+    await validateQueues(queueStatusFile);
+    DEBUG(func, `Validations successful, proceeding to TriggerStartup`);
+    TriggerStartup();
   } catch (error) {
-    ERROR(func, `Error during validation process: ${error.message}`);
-    process.exit(2)
+    ERROR(func, `Validation failed: ${error.message}`);
+    process.exit(2);
   }
 };
 
 const TriggerStartup = async () => {
-  const func = "TriggerStartup"
+  const func = "TriggerStartup";
   let phxConfiguration, myConfiguration;
   try {
-    DEBUG(func, `Initiating queue check process.`);
+    DEBUG(func, `Invoking queuesToCheck function to determine which queues to process`);
     const queueShouldBeChecked = await queuesToCheck();
-    DEBUG(func, `Retrieving credentials from: ${credentialFilePath}`);
+    DEBUG(func, `Reading credentials from file: ${credentialFilePath}`);
     const credentials = await readCredentials(credentialFilePath);
+    DEBUG(func, `Queue settings: teamQueue - ${JSON.parse(queueShouldBeChecked.teamQueue)}, myQueue - ${JSON.parse(queueShouldBeChecked.myQueue)}`);
 
-    DEBUG(func, `Checking teamQueue flag: ${JSON.parse(queueShouldBeChecked.teamQueue)}`);
     if (JSON.parse(queueShouldBeChecked.teamQueue)) {
+      DEBUG(func, `Reading configuration for mainQueue (teamQueue)`);
       phxConfiguration = await readConfigurationFile({ type: configurationTypes.mainQueue, filePath: configurationFilePath });
     }
-
-    DEBUG(func, `Checking myQueue flag: ${JSON.parse(queueShouldBeChecked.myQueue)}`);
+    
     if (JSON.parse(queueShouldBeChecked.myQueue)) {
+      DEBUG(func, `Reading configuration for personalQueue (myQueue)`);
       myConfiguration = await readConfigurationFile({ type: configurationTypes.myQueue, filePath: configurationFilePath });
-      DEBUG(func, `Successfully read configuration for ${configurationTypes.myQueue}`);
+      DEBUG(func, `Successfully read configuration for myQueue`);
     }
 
     if (JSON.parse(queueShouldBeChecked.teamQueue) && phxConfiguration.url && phxConfiguration.message && phxConfiguration.context && phxConfiguration.pageUri) {
-      DEBUG(func, `Sending HTTP request for teamQueue configuration`);
-      const phxQueueResponse = await httpRequest({ requestConfig: phxConfiguration, credentials });
-      handleQueueResponse(func, phxQueueResponse, 'teamQueue');
+      DEBUG(func, `Sending HTTP request for teamQueue (phxConfiguration)`);
+      const phxQueueResponse = await httpRequest({ requestConfig: phxConfiguration, credentials: credentials });
+      if (phxQueueResponse && phxQueueResponse.status === 200) {
+        DEBUG(func, `Received 200 OK response from HTTP handler for phxQueue`);
+        processPhxHttpResponse(phxQueueResponse);
+      } else {
+        DEBUG(func, `Received ${phxQueueResponse.status} response for phxQueue`);
+        handleFailedResponse(phxQueueResponse.status);
+      }
     }
 
     if (JSON.parse(queueShouldBeChecked.myQueue) && myConfiguration.url && myConfiguration.message && myConfiguration.context && myConfiguration.pageUri) {
-      DEBUG(func, `Sending HTTP request for myQueue configuration`);
-      const myQueueResponse = await httpRequest({ requestConfig: myConfiguration, credentials });
-      handleQueueResponse(func, myQueueResponse, 'myQueue');
+      DEBUG(func, `Sending HTTP request for myQueue (myConfiguration)`);
+      const myQueueResponse = await httpRequest({ requestConfig: myConfiguration, credentials: credentials });
+      if (myQueueResponse && myQueueResponse.status === 200) {
+        DEBUG(func, `Received 200 OK response from HTTP handler for myQueue`);
+        processMyHttpResponse(myQueueResponse);
+      } else {
+        DEBUG(func, `Received ${myQueueResponse.status} response for myQueue`);
+        handleFailedResponse(myQueueResponse.status);
+      }
     }
   } catch (error) {
-    ERROR(func, `Error during startup trigger: ${error.message}`);
-    process.exit(2)
-  }
-};
-
-const handleQueueResponse = (func, response, queueType) => {
-  if (response && response.status === 200) {
-    DEBUG(func, `HTTP response for ${queueType} received with status 200`);
-    DEBUG(func, `Processing response data for ${queueType}`);
-    queueType === 'teamQueue' ? processPhxHttpResponse(response) : processMyHttpResponse(response);
-  } else {
-    DEBUG(func, `HTTP response for ${queueType} returned with status ${response.status}`);
-    handleFailedResponse(response.status);
+    ERROR(func, `Error during TriggerStartup: ${error.message}`);
+    process.exit(2);
   }
 };
 
 const queuesToCheck = async () => {
-  const func = "queuesToCheck"
+  const func = "queuesToCheck";
   try {
-    DEBUG(func, `Retrieving queue status from: ${queueStatusFile}`);
+    DEBUG(func, `Fetching queue status from file: ${queueStatusFile}`);
     const queueState = await readQueueStatus(queueStatusFile);
-    const teamQueue = queueState.Queues.Team[0]
-    const myQueue = queueState.Queues.Personal[0]
-    DEBUG(func, `Queues to check: {teamQueue: ${teamQueue}, myQueue: ${myQueue}}`);
+    const teamQueue = queueState.Queues.Team[0];
+    const myQueue = queueState.Queues.Personal[0];
+    DEBUG(func, `Queues to be checked: teamQueue - ${teamQueue}, myQueue - ${myQueue}`);
     return { teamQueue, myQueue };
   } catch (error) {
-    DEBUG(func, `Error fetching queue status: ${error.message}`);
-    process.exit(2)
+    ERROR(func, `Error reading queue status: ${error.message}`);
+    process.exit(2);
   }
 };
 
 const processPhxHttpResponse = async (queueData) => {
-  const func = "processPhxHttpResponse"
+  const func = "processPhxHttpResponse";
   try {
-    DEBUG(func, `Processing HTTP response data for teamQueue`);
-    const baseCaseRecord = queueData?.data?.context;
+    DEBUG(func, `Processing HTTP response data for phxQueue`);
+    let baseCaseRecord = queueData?.data?.context;
     let caseRecords = baseCaseRecord.globalValueProviders[1]?.values?.records || baseCaseRecord.globalValueProviders[2]?.values?.records;
     let caseNumbers = [];
-
-    DEBUG(func, `Verifying if caseRecords are intact`);
     if (!caseRecords) {
-      logger.error(`Case records missing or malformed. Please check the configuration file at ${configurationFilePath}`);
+      logger.error(`Case records are missing or malformed. Check configuration file ${configurationFilePath}`);
       process.exit(2);
     }
 
-    DEBUG(func, `Loading supported product list from configuration`);
+    DEBUG(func, `Reading supported products for filtering cases`);
     const supportedProduct = await readConfigurationFile({ type: configurationTypes.products, filePath: configurationFilePath });
+
     DEBUG(func, `Matching case records with supported products`);
     for (let key in supportedProduct) {
       if (supportedProduct[key][0]) {
         Object.keys(caseRecords).forEach((recordKey) => {
-          let productDisplayValue = caseRecords[recordKey].Case.record.fields.Product__r.displayValue
+          let productDisplayValue = caseRecords[recordKey].Case.record.fields.Product__r.displayValue;
           if (productDisplayValue && productDisplayValue.toLowerCase().includes(key.toLowerCase()) && !productDisplayValue.toLowerCase().includes('cloud')) {
             if (productCaseCount.hasOwnProperty(key)) {
               productCaseCount[key] += 1;
@@ -145,35 +144,33 @@ const processPhxHttpResponse = async (queueData) => {
       }
     }
 
-    DEBUG(func, `Displaying case counts for supported products`);
+    DEBUG(func, `Printing case counts for supported products`);
     printCasesInConsole(productCaseCount, supportedProduct);
 
     DEBUG(func, `Printing queue information for mainQueue`);
     printPersonalQueue({ cases: productCaseCount, queue: configurationTypes.mainQueue });
 
-    DEBUG(func, `Saving case numbers to file`);
+    DEBUG(func, `Writing case numbers to file: ${caseNumberFile}`);
     writeCaseListFile(caseNumbers, caseNumberFile);
   } catch (error) {
-    DEBUG(func, `Error in processing teamQueue response: ${error.message}`);
+    ERROR(func, `Error processing HTTP response for phxQueue: ${error.message}`);
     handleFailedResponse(error, 'in processPhxHttpResponse');
   }
 };
 
 const processMyHttpResponse = async (queueData) => {
-  const func = "processMyHttpResponse"
+  const func = "processMyHttpResponse";
   try {
     DEBUG(func, `Processing HTTP response data for myQueue`);
     const CaseCommitments = [];
-    const baseCaseRecord = queueData?.data?.context;
+    let baseCaseRecord = queueData?.data?.context;
     let myCases = baseCaseRecord.globalValueProviders[1]?.values?.records || baseCaseRecord.globalValueProviders[2]?.values?.records;
-
-    DEBUG(func, `Verifying if caseRecords are intact`);
     if (!myCases) {
-      logger.error(`Case records missing or malformed. Please check the configuration file at ${configurationFilePath}`);
+      logger.error(`Case records are missing or malformed. Check configuration file ${configurationFilePath}`);
       process.exit(2);
     }
 
-    DEBUG(func, `Extracting case data and commitment details`);
+    DEBUG(func, `Extracting case commitment data`);
     Object.values(myCases).forEach((record) => {
       let field = record.Case.record.fields;
       CaseCommitments.push({ CaseNumber: field.CaseNumber.value, Countdown: field.Time_Before_Next_Update_Commitment__c.value, Status: field.Status.value });
@@ -182,72 +179,71 @@ const processMyHttpResponse = async (queueData) => {
     DEBUG(func, `Displaying personal queue information`);
     printPersonalQueue({ cases: CaseCommitments, queue: configurationTypes.myQueue });
   } catch (error) {
-    DEBUG(func, `Error in processing myQueue response: ${error.message}`);
+    ERROR(func, `Error processing HTTP response for myQueue: ${error.message}`);
     handleFailedResponse(error, 'in processMyHttpResponse');
   }
 };
 
 const handleFailedResponse = (err, context = '') => {
-  const func = "handleFailedResponse"
-  logger.error(`HTTP Error ${err} - ${statusCodeMapping[err]}`);
-  DEBUG(func, `Handling HTTP status code ${err}.`)
-
+  const func = "handleFailedResponse";
+  logger.error(`Error ${err} ${statusCodeMapping[err]}`);
+  DEBUG(func, `Handling HTTP error with status code ${err}`);
   if (err == 400) {
-    DEBUG(func, `Bad Request (400) - Unrecoverable error, exiting.`);
+    DEBUG(func, `Unrecoverable error: HTTP 400 - Bad Request. Exiting...`);
     process.exit(2);
   }
   if (err == 401) {
-    DEBUG(func, `Unauthorized (401) - Possible token issue, recoverable.`);
+    DEBUG(func, `Recoverable error: HTTP 401 - Unauthorized. Possible token issue. Exiting...`);
     process.exit(1);
   }
   if (err == 404) {
-    DEBUG(func, `Not Found (404) - Unrecoverable error, exiting.`);
+    DEBUG(func, `Unrecoverable error: HTTP 404 - Not Found. Exiting...`);
+    process.exit(2);
+  } else {
+    DEBUG(func, `Unknown error code, exiting with failure`);
     process.exit(2);
   }
-  process.exit(2);
 };
 
 const printCasesInConsole = async (cases, supportedProduct) => {
-  const func = "printCasesInConsole"
-  let newCases = false
-  DEBUG(func, `Displaying case counts for supported products`);
-
-  Object.keys(cases).forEach((product) => {
-    DEBUG(func, `Displaying ${cases[product]} ${product} case(s)`);
+  const func = "printCasesInConsole";
+  let newCases = false;
+  DEBUG(func, `Looping through the cases and counting them per product type`);
+  Object.keys(cases).forEach(product => {
+    DEBUG(func, `Displaying the case count for ${product}: ${cases[product]} cases`);
     if (supportedProduct[product][0] && cases[product] > 0) {
-      logger.info(`  -> ${cases[product]} ${product} case(s)`);
-      newCases = true
+      logger.info(`  ${cases[product]} ${product} case(s)`);
+      newCases = true;
     }
   });
-
   if (!newCases) {
-    console.log('  No new cases')
-    DEBUG(func, `No new cases matching the supported products in ${configurationFilePath}`);
+    DEBUG(func, `No new cases matching supported products`);
+    console.log('  No cases in the queue');
   }
 };
 
 const printPersonalQueue = ({ cases, queue }) => {
   const func = "printPersonalQueue"
   if (queue === configurationTypes.myQueue) {
-    let commitmentNeeded = 0
-    let inSupportCase = 0
-    let newCase = 0
-
-    DEBUG(func, `Calculating case categories for myQueue`);
-
+    let commitmentNeeded = 0;
+    let inSupportCase = 0;
+    let newCase = 0;
     Object.values(cases).forEach((record) => {
-      if (record.Countdown < 1) commitmentNeeded += 1
-      if (record.Status.toLowerCase().includes('support')) inSupportCase += 1
-      if (record.Status.toLowerCase().includes('new')) newCase += 1
-    })
-
-    if (commitmentNeeded || inSupportCase || newCase) logger.info()
-
-    DEBUG(func, `Displaying case statuses in the console`);
-    if (commitmentNeeded > 0) logger.warn(`  ${commitmentNeeded} case(s) need an update within 24 hours`)
-    if (inSupportCase > 0) logger.warn(`  ${inSupportCase} case(s) are In Support`)
-    if (newCase > 0) logger.warn(`  ${newCase} case(s) are new and need an IC`)
-    if (!commitmentNeeded && !inSupportCase && !newCase) console.log(`  No case updates`)
+      if (record.Countdown < 1) commitmentNeeded += 1;
+      if (record.Status.toLowerCase().includes('support')) inSupportCase += 1;
+      if (record.Status.toLowerCase().includes('new')) newCase += 1;
+    });
+    
+    if (commitmentNeeded || inSupportCase || newCase) {
+      logger.info()
+      DEBUG(func, `Displaying case statuses in the console`);
+      if (commitmentNeeded > 0) logger.warn(`  ${commitmentNeeded} case(s) need an update within 24 hours`);
+      if (inSupportCase > 0) logger.warn(`  ${inSupportCase} case(s) are In Support`);
+      if (newCase > 0) logger.warn(`  ${newCase} case(s) are new and need an IC`);
+    } else {
+      DEBUG(func, `No case updates necessary`);
+      console.log(`  No case updates`);
+    }
   }
 };
 
