@@ -1,4 +1,4 @@
-#  SalesForce Queue Query
+#  SalesForce Case Notifier
 
 This project utilizes a combination of Bash, Node.js (v22), and Python to query Salesforce queues for new support cases. It features a personal ticket tracking function that can inform you when you have cases to update.
 
