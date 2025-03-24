@@ -22,15 +22,11 @@ const logger = winston.createLogger({
 });
 
 const DEBUG = async (func, message) => {
-  const date = new Date();
-  const debugTimestamp = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')},${date.getMilliseconds().toString().padStart(3, '0')}`;
-  logger.debug(`${debugTimestamp} - DEBUG [${func}] ${message}`)
+  logger.debug(`DEBUG [${func}] ${message}`)
 }
 
 const ERROR = async (func, message) => {
-  const date = new Date();
-  const debugTimestamp = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')},${date.getMilliseconds().toString().padStart(3, '0')}`;
-  logger.error(`${debugTimestamp} - ERROR [${func}] ${message}`)
+  logger.error(`ERROR [${func}] ${message}`)
 }
 
 module.exports = { logger, DEBUG, ERROR };

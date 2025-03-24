@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const xml2js = require('xml2js');
-const { logger, DEBUG, ERROR } = require("./logger")
+const { DEBUG, ERROR } = require("./logger")
 
 async function checkConfigFileExistence(filePath) {
   const func = "checkConfigFileExistence"

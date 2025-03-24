@@ -1,19 +1,22 @@
-const { logger, DEBUG, ERROR } = require("./logger")
-const { httpRequest } = require("./http")
-const { readConfigurationFile, readCredentials, readQueueStatus, writeCaseListFile } = require("./readFiles")
-const { validateConfiguration, validateCredentials, validateQueues, validateProducts } = require('./validation')
+const { exec } = require('child_process');
+const { logger, DEBUG, ERROR } = require("./logger");
+const { httpRequest } = require("./http");
+const { readConfigurationFile, readCredentials, readQueueStatus, writeCaseListFile } = require("./readFiles");
+const { validateConfiguration, validateCredentials, validateQueues, validateProducts } = require('./validation');
 
-const srcPath = process.env.NODE_PATH
+const srcPath = process.env.NODE_PATH;
 const configurationFilePath = `${srcPath}/config/configuration.xml`;
 const credentialFilePath = `${srcPath}/config/credentials.txt`;
-const queueStatusFile = `${srcPath}/config/queues.xml`
-const caseNumberFile = `${srcPath}/config/caseNumbers`
+const queueStatusFile = `${srcPath}/config/queues.xml`;
+const caseNumberFile = `${srcPath}/config/caseNumbers`;
+
+const Notifier = `python3 ${srcPath}/NotificationService/Notification.py`;
 
 const configurationTypes = {
   mainQueue: 'request_info',
   myQueue: 'personal_queue',
   products: 'products_list'
-}
+};
 
 const productCaseCount = {
   B2B: 0,
@@ -31,7 +34,7 @@ const statusCodeMapping = {
   401: "Unauthorized",
   404: "Not Found",
   500: "Server Error"
-}
+};
 
 const RunValidations = async () => {
   const func = "RunValidations";
@@ -148,7 +151,7 @@ const processPhxHttpResponse = async (queueData) => {
     printCasesInConsole(productCaseCount, supportedProduct);
 
     DEBUG(func, `Printing queue information for mainQueue`);
-    printPersonalQueue({ cases: productCaseCount, queue: configurationTypes.mainQueue });
+    printQueueInfo({ cases: productCaseCount, queue: configurationTypes.mainQueue });
 
     DEBUG(func, `Writing case numbers to file: ${caseNumberFile}`);
     writeCaseListFile(caseNumbers, caseNumberFile);
@@ -177,7 +180,7 @@ const processMyHttpResponse = async (queueData) => {
     });
 
     DEBUG(func, `Displaying personal queue information`);
-    printPersonalQueue({ cases: CaseCommitments, queue: configurationTypes.myQueue });
+    printQueueInfo({ cases: CaseCommitments, queue: configurationTypes.myQueue });
   } catch (error) {
     ERROR(func, `Error processing HTTP response for myQueue: ${error.message}`);
     handleFailedResponse(error, 'in processMyHttpResponse');
@@ -222,8 +225,8 @@ const printCasesInConsole = async (cases, supportedProduct) => {
   }
 };
 
-const printPersonalQueue = ({ cases, queue }) => {
-  const func = "printPersonalQueue"
+const printQueueInfo = ({ cases, queue }) => {
+  const func = "printQueueInfo"
   if (queue === configurationTypes.myQueue) {
     let commitmentNeeded = 0;
     let inSupportCase = 0;
@@ -243,6 +246,27 @@ const printPersonalQueue = ({ cases, queue }) => {
     } else {
       DEBUG(func, `No case updates necessary`);
       console.log(`  No case updates`);
+    }
+  }
+  if (queue === configurationTypes.mainQueue) {
+    DEBUG(func, `Preparing to execute driver for mainQueue`);
+    const { B2B, Activator, SecureTransport, Cft, Api, Gateway, Sentinel } = cases;
+    const driver = B2B || Activator || SecureTransport || Cft || Api || Gateway || Sentinel > 0 
+      ? Notifier + ` ${B2B} ${Activator} ${SecureTransport} ${Cft} ${Api} ${Gateway} ${Sentinel}`
+      : null;
+
+    DEBUG(func, `Selected driver: "${driver}"`);
+    if (driver) {
+      exec(driver, (error) => {
+        if (error) {
+          DEBUG(func, `Error occurred while executing the driver: ${error}`);
+          logger.error(`Error executing Python script: ${error}`);
+        } else {
+          DEBUG(func, `Driver executed successfully`);
+        }
+      });
+    } else {
+      DEBUG(func, `No driver exists, continuing to next steps`)
     }
   }
 };
