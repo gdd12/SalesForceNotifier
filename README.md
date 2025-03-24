@@ -29,7 +29,7 @@ To run this application, you'll need the following tools and dependencies instal
 
 Clone the repository:
 ```bash
-git clone https://github.com/gdd12/SalesForceNotifier
+git clone https://github.com/gdd12/SalesForceNotifier.git
 ```
 Navigate to the root directory:
 ```bash
