@@ -90,7 +90,7 @@ const writeCaseListFile = async (caseNumbers, caseNumberFile) => {
     if (error.code === 'ENOENT') {
       DEBUG(func, `Case list file does not exists, creating file`)
       await fs.writeFile(caseNumberFile, '' , 'utf8')
-      DEBUG(func, `${caseNumberFile} successfully created`)
+      DEBUG(func, `${caseNumberFile} successfully created. If cases exist, they will not appear until next poll`)
     } else {
       console.error('Error:', error);
     }

@@ -23,7 +23,7 @@ debug_config() {
 
 startup() {
   clear
-  if [ ! -f "$credentials_file_path" ]; then
+  if [ ! -f "$credentials_file_path" ] && [ -f "$config_file" ]; then
     echo "No credential file found."
     rewrite_credentials
   fi
@@ -53,7 +53,7 @@ startup() {
     elif [ $exit_code -eq 3 ]; then
       echo "Configuration file not found. Moving $template_config_file to $config_file."
       cp $template_config_file $config_file
-      echo "Enter configuration and restart"
+      echo "Navigate to $config_file and follow the instructions in the file to set up configuration"
       break
     else
       print_case_list
