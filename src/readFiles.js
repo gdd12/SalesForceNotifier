@@ -76,9 +76,8 @@ const readQueueStatus = async (filePath) => {
 const writeCaseListFile = async (caseNumbers, caseNumberFile) => {
   const func = "writeCaseListFile"
   try {
-    DEBUG(func, `Preparing ${caseNumberFile} data, verifying its existence`)
+    DEBUG(func, `Loading ${caseNumberFile} data`)
     const loadedData = await fs.readFile(caseNumberFile, 'utf8');
-    DEBUG(func, `Case number list file exists`)
     const existingCaseNumbers = new Set(loadedData.split('\n').filter(line => line.trim()));
     const newCaseNumbers = caseNumbers.filter(caseNumber => !existingCaseNumbers.has(caseNumber));
     DEBUG(func, `Appending new case numbers to the case list file`)
@@ -87,13 +86,8 @@ const writeCaseListFile = async (caseNumbers, caseNumberFile) => {
     }
     return
   } catch (error) {
-    if (error.code === 'ENOENT') {
-      DEBUG(func, `Case list file does not exists, creating file`)
-      await fs.writeFile(caseNumberFile, '' , 'utf8')
-      DEBUG(func, `${caseNumberFile} successfully created. If cases exist, they will not appear until next poll`)
-    } else {
+      DEBUG(func, `Could not load case file and append new case list`)
       console.error('Error:', error);
-    }
   }
 }
 

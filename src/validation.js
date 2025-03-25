@@ -139,4 +139,20 @@ const validateQueues = async (filePath) => {
   }
 }
 
-module.exports = { validateConfiguration, validateCredentials, validateQueues, validateProducts }
+const validateCaseNumbersFile = async (caseNumberFile) => {
+  const func = "validateCaseNumbersFile"
+  DEBUG("Validation", `Checking for the caseNumbers file existence`)
+  try {
+    const file = await fs.readFile(caseNumberFile, 'utf8');
+    DEBUG("Validation", ` >> Successful check`)
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      await fs.writeFile(caseNumberFile, '' , 'utf8')
+      DEBUG("Validation", ` >> Successful check`)
+    } else {
+      ERROR(func, `Recoverable error while performing caseNumbers file check. ${error.message}`)
+    }
+  }
+}
+
+module.exports = { validateConfiguration, validateCredentials, validateQueues, validateProducts, validateCaseNumbersFile }

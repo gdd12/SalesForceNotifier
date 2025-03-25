@@ -2,7 +2,7 @@ const { exec } = require('child_process');
 const { logger, DEBUG, ERROR } = require("./logger");
 const { httpRequest } = require("./http");
 const { readConfigurationFile, readCredentials, readQueueStatus, writeCaseListFile } = require("./readFiles");
-const { validateConfiguration, validateCredentials, validateQueues, validateProducts } = require('./validation');
+const { validateConfiguration, validateCredentials, validateQueues, validateProducts, validateCaseNumbersFile } = require('./validation');
 
 const srcPath = process.env.NODE_PATH;
 const configurationFilePath = `${srcPath}/config/configuration.xml`;
@@ -43,6 +43,7 @@ const RunValidations = async () => {
     await validateConfiguration(configurationFilePath);
     await validateCredentials(credentialFilePath);
     await validateProducts(configurationFilePath);
+    await validateCaseNumbersFile(caseNumberFile);
     await validateQueues(queueStatusFile);
     DEBUG(func, `Validations successful, proceeding to TriggerStartup`);
     TriggerStartup();

@@ -51,9 +51,9 @@ startup() {
       echo "An unexpected error occurred. Exiting."
       break
     elif [ $exit_code -eq 3 ]; then
-      echo "Configuration file not found. Moving $template_config_file to $config_file."
+      echo "Configuration file not found. This is most likely due to this being the first startup."
       cp $template_config_file $config_file
-      echo "Navigate to $config_file and follow the instructions in the file to set up configuration"
+      echo "Navigate to $config_file and follow the instructions in the file. Once complete, restart."
       break
     else
       print_case_list
