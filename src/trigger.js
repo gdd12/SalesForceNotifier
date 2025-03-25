@@ -214,8 +214,8 @@ const printCasesInConsole = async (cases, supportedProduct) => {
   let newCases = false;
   DEBUG(func, `Looping through the cases and counting them per product type`);
   Object.keys(cases).forEach(product => {
-    DEBUG(func, `Displaying the case count for ${product}: ${cases[product]} cases`);
     if (supportedProduct[product][0] && cases[product] > 0) {
+      DEBUG(func, `Displaying the case count for ${product}: ${cases[product]} cases`);
       logger.info(`  ${cases[product]} ${product} case(s)`);
       newCases = true;
     }
