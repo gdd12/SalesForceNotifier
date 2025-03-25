@@ -62,6 +62,9 @@ const TriggerStartup = async () => {
     DEBUG(func, `Reading credentials from file: ${credentialFilePath}`);
     const credentials = await readCredentials(credentialFilePath);
     DEBUG(func, `Queue settings: teamQueue - ${JSON.parse(queueShouldBeChecked.teamQueue)}, myQueue - ${JSON.parse(queueShouldBeChecked.myQueue)}`);
+    if (!JSON.parse(queueShouldBeChecked.teamQueue) && !JSON.parse(queueShouldBeChecked.myQueue)) {
+      DEBUG(func, `Atleast one queue must be set to true. Edit the file and either restart or let next poll occur.`)
+    }
 
     if (JSON.parse(queueShouldBeChecked.teamQueue)) {
       DEBUG(func, `Reading configuration for mainQueue (teamQueue)`);
